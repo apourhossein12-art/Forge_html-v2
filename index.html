@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AnyHTML">
+<meta name="theme-color" content="#0b0d12">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<title>AnyHTML v2 — هر چیزی به HTML</title>
+<style>
+:root{--bg:#0b0d12;--panel:#12151c;--line:#232836;--fg:#e6e9f0;--mut:#8b93a7;--acc:#4f8cff;--ok:#3ecf8e;--bad:#ff6b6b}
+@media (prefers-color-scheme:light){:root{--bg:#f6f7fb;--panel:#fff;--line:#dfe3ee;--fg:#161a24;--mut:#667089;--acc:#1f5fe0;--ok:#118a5a;--bad:#c93636}}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,Tahoma,Vazirmatn,sans-serif;min-height:100dvh;
+ padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.wrap{max-width:640px;margin:0 auto;display:grid;gap:14px}
+h1{margin:6px 0 0;font-size:26px;letter-spacing:-.3px}h1 span{color:var(--acc)}
+p.sub{margin:0;color:var(--mut)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px}
+label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
+input[type=text],input[type=password]{width:100%;font:16px ui-monospace,Menlo,monospace;direction:ltr;text-align:left;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+button,.btn{font:600 16px inherit;font-family:inherit;border:0;border-radius:14px;padding:13px 16px;background:var(--acc);color:#fff;cursor:pointer;text-decoration:none;display:inline-block;text-align:center}
+button.sec,.btn.sec{background:transparent;color:var(--fg);border:1px solid var(--line)}
+button:disabled{opacity:.5}
+#drop{border:2px dashed var(--line);border-radius:18px;padding:30px 16px;text-align:center;color:var(--mut);cursor:pointer}
+#drop.over{border-color:var(--acc);color:var(--acc)}
+#drop b{display:block;color:var(--fg);font-size:18px;margin-bottom:4px}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.job{border-top:1px solid var(--line);padding:12px 0}.job:first-child{border-top:0}
+.job h3{margin:0;font-size:15px;direction:ltr;text-align:left;word-break:break-all}
+.st{font-size:14px;color:var(--mut)}.st.ok{color:var(--ok)}.st.bad{color:var(--bad)}
+.bar{height:5px;background:var(--line);border-radius:5px;overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;width:30%;background:var(--acc);animation:m 1.4s infinite ease-in-out}
+@keyframes m{0%{margin-inline-start:-30%}100%{margin-inline-start:100%}}
+pre{direction:ltr;text-align:left;font:12px/1.5 ui-monospace,Menlo,monospace;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px;overflow:auto;max-height:220px;white-space:pre-wrap}
+details summary{cursor:pointer;color:var(--mut);font-size:14px}
+small.hint{color:var(--mut);display:block;margin-top:6px;font-size:12.5px}
+a{color:var(--acc)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div><h1>Any<span>HTML</span> <small style="font-size:.5em;opacity:.6">v2</small></h1>
+  <p class="sub">هر زیپ، پروژه یا فایلی بدهید؛ یک فایل HTML تکی و آفلاین، مناسب آیفون، تحویل می‌گیرید.</p></div>
+
+  <div class="card">
+    <div id="drop" tabindex="0"><b>انتخاب فایل یا رها کردن اینجا</b>ZIP پروژه، فایل HTML، Markdown، CSV، PDF، تصویر … هر چیزی</div>
+    <input id="file" type="file" hidden multiple>
+    <div class="row" style="margin-top:12px">
+      <button id="go" disabled style="flex:1">تبدیل به HTML</button>
+    </div>
+    <small class="hint" id="picked">فایلی انتخاب نشده.</small>
+  </div>
+
+  <div class="card" id="jobsCard" hidden><div id="jobs"></div></div>
+
+  <details class="card" id="settings">
+    <summary>تنظیمات اتصال به GitHub (یک‌بار)</summary>
+    <label>ریپو (owner/repo)</label><input type="text" id="repo" autocapitalize="off" autocomplete="off" placeholder="username/anyhtml">
+    <label>توکن GitHub (Fine-grained، فقط همین ریپو، Contents: Read &amp; write + Actions: Read)</label>
+    <input type="password" id="tok" autocomplete="off" placeholder="github_pat_…">
+    <div class="row" style="margin-top:12px"><button class="sec" id="save">ذخیره</button><button class="sec" id="check">تست اتصال</button></div>
+    <small class="hint" id="cfgmsg">توکن فقط در حافظه مرورگر همین دستگاه می‌ماند و فقط به api.github.com ارسال می‌شود.</small>
+    <small class="hint">⚠️ ریپوی Pages معمولاً عمومی است: فایل ورودی تا پایان تبدیل در <code>inbox/</code> و خروجی در <code>outputs/</code> برای همه قابل دیدن است. برای پروژه‌های خصوصی ریپوی private بسازید.</small>
+  </details>
+</div>
+
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+var LS=window.localStorage;
+function ls(k,v){try{if(v===undefined)return LS.getItem(k);v===null?LS.removeItem(k):LS.setItem(k,v)}catch(e){return null}}
+// guess owner/repo from owner.github.io/repo
+(function(){var h=location.hostname,m=h.match(/^([^.]+)\.github\.io$/);var p=location.pathname.split('/').filter(Boolean)[0];
+  var g=m?(m[1]+'/'+(p&&!/\.html?$/.test(p)?p:m[1]+'.github.io')):'';
+  $('repo').value=ls('anyhtml_repo')||g;$('tok').value=ls('anyhtml_tok')||'';
+  if(!$('tok').value)$('settings').open=true})();
+var files=[];
+function pick(fl){files=[].slice.call(fl);$('go').disabled=!files.length;$('picked').textContent=files.length?files.map(function(f){return f.name+' ('+(f.size/1048576).toFixed(2)+' MB)'}).join('، '):'فایلی انتخاب نشده.'}
+$('drop').onclick=function(){$('file').click()};
+$('file').onchange=function(){pick(this.files)};
+['dragenter','dragover'].forEach(function(e){$('drop').addEventListener(e,function(ev){ev.preventDefault();$('drop').classList.add('over')})});
+['dragleave','drop'].forEach(function(e){$('drop').addEventListener(e,function(ev){ev.preventDefault();$('drop').classList.remove('over')})});
+$('drop').addEventListener('drop',function(ev){pick(ev.dataTransfer.files)});
+$('save').onclick=function(){ls('anyhtml_repo',$('repo').value.trim());ls('anyhtml_tok',$('tok').value.trim());$('cfgmsg').textContent='ذخیره شد.'};
+function cfg(){var r=$('repo').value.trim(),t=$('tok').value.trim();if(!/^[\w.-]+\/[\w.-]+$/.test(r)||!t)throw new Error('ریپو و توکن را در تنظیمات وارد کنید.');return{repo:r,tok:t}}
+function api(path,opt,c){opt=opt||{};opt.headers=Object.assign({Authorization:'Bearer '+c.tok,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'},opt.headers||{});return fetch('https://api.github.com/repos/'+c.repo+path,opt)}
+$('check').onclick=function(){try{var c=cfg()}catch(e){$('cfgmsg').textContent=e.message;return}
+  api('',{},c).then(function(r){return r.json().then(function(j){$('cfgmsg').textContent=r.ok?('اتصال برقرار است ✓ — شاخه: '+j.default_branch+(j.permissions&&!j.permissions.push?' (اما اجازه نوشتن ندارید!)':'')):('خطا: '+(j.message||r.status))})}).catch(function(e){$('cfgmsg').textContent='خطای شبکه: '+e.message})};
+
+function b64(buf){var s='',u=new Uint8Array(buf),n=0x8000;for(var i=0;i<u.length;i+=n)s+=String.fromCharCode.apply(null,u.subarray(i,i+n));return btoa(s)}
+function stemOf(name){var m=name.match(/^(.*?)(\.tar\.gz|\.tgz|\.[A-Za-z0-9]{1,6})?$/);var base=(m[1]||'file'),ext=(m[2]||'').toLowerCase();if(ext==='.tar.gz')ext='.tgz';
+  base=base.normalize('NFKD').replace(/[^\x00-\x7F]/g,'').replace(/[^A-Za-z0-9]+/g,'-').replace(/^-+|-+$/g,'').toLowerCase().slice(0,40)||'file';
+  return{stem:Date.now().toString(36)+'-'+base,ext:ext||'.bin'}}
+function esc(s){return String(s).replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
+var sleep=function(ms){return new Promise(function(r){setTimeout(r,ms)})};
+
+function addJob(name){$('jobsCard').hidden=false;var d=document.createElement('div');d.className='job';
+  d.innerHTML='<h3></h3><div class="st"></div><div class="bar" hidden><i></i></div><div class="acts row"></div><div class="rep"></div>';d.querySelector('h3').textContent=name;$('jobs').prepend(d);
+  return{set:function(t,cls,busy){var s=d.querySelector('.st');s.textContent=t;s.className='st '+(cls||'');d.querySelector('.bar').hidden=!busy},
+   acts:d.querySelector('.acts'),rep:d.querySelector('.rep')}}
+
+async function run(file){
+  var j=addJob(file.name);
+  try{
+    var c=cfg();j.set('در حال خواندن فایل…','',true);
+    var info=await (await api('',{},c)).json();if(!info.default_branch)throw new Error(info.message||'ریپو پیدا نشد');
+    var br=info.default_branch,n=stemOf(file.name),path='inbox/'+n.stem+n.ext;
+    if(file.size>90*1048576)throw new Error('حجم فایل از ۹۰ مگابایت بیشتر است؛ آن را در Release بگذارید و از Actions → Run workflow با URL استفاده کنید.');
+    var content=b64(await file.arrayBuffer());
+    j.set('در حال ارسال به ریپو…','',true);
+    var up=await api('/contents/'+path,{method:'PUT',body:JSON.stringify({message:'anyhtml: add '+n.stem+n.ext,content:content,branch:br})},c);
+    var uj=await up.json();if(!up.ok)throw new Error(uj.message||('آپلود ناموفق '+up.status));
+    j.set('در صف تبدیل (GitHub Actions)… معمولاً ۱ تا ۵ دقیقه؛ پروژه‌های بزرگ بیشتر','',true);
+    var out='outputs/'+n.stem+'.html',t0=Date.now(),found=false,last='';
+    while(Date.now()-t0<25*60*1000){
+      await sleep(7000);
+      var r=await api('/contents/outputs?ref='+encodeURIComponent(br)+'&t='+Date.now(),{cache:'no-store'},c);
+      if(r.ok){var list=await r.json();if(list.some(function(x){return x.name===n.stem+'.html'})){found=true;break}
+        if(list.some(function(x){return x.name===n.stem+'.report.txt'})&&!list.some(function(x){return x.name===n.stem+'.html'})){break}}
+      try{var rr=await api('/actions/runs?per_page=1&branch='+br,{cache:'no-store'},c);if(rr.ok){var rj=await rr.json(),run=rj.workflow_runs&&rj.workflow_runs[0];
+        if(run){var s=run.status==='completed'?('پایان: '+run.conclusion):(run.status==='in_progress'?'در حال اجرا…':'در صف…');if(s!==last){last=s;j.set('GitHub Actions: '+s,'',run.status!=='completed')}}}}catch(e){}
+    }
+    var rep=await api('/contents/outputs/'+n.stem+'.report.txt?ref='+br,{headers:{Accept:'application/vnd.github.raw+json'},cache:'no-store'},c);
+    if(rep.ok){var tx=await rep.text();j.rep.innerHTML='<details><summary>گزارش تبدیل</summary><pre></pre></details>';j.rep.querySelector('pre').textContent=tx}
+    if(!found)throw new Error('خروجی ساخته نشد. لاگ را در تب Actions ریپو ببینید.');
+    var res=await api('/contents/'+out+'?ref='+br,{headers:{Accept:'application/vnd.github.raw+json'},cache:'no-store'},c);
+    if(!res.ok)throw new Error('دریافت خروجی ناموفق');
+    var blob=new Blob([await res.arrayBuffer()],{type:'text/html'}),url=URL.createObjectURL(blob);
+    j.set('آماده شد ✓ ('+(blob.size/1048576).toFixed(2)+' MB)','ok',false);
+    var a=document.createElement('a');a.className='btn';a.textContent='باز کردن';a.href=url;a.target='_blank';
+    var d=document.createElement('a');d.className='btn sec';d.textContent='دانلود HTML';d.href=url;d.download=file.name.replace(/\.[^.]+$/,'')+'.html';
+    var s=document.createElement('button');s.className='sec';s.textContent='اشتراک‌گذاری';
+    s.onclick=async function(){try{var f=new File([blob],d.download,{type:'text/html'});if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f]});else d.click()}catch(e){}};
+    j.acts.append(a,d,s);
+  }catch(e){j.set('خطا: '+(e.message||e),'bad',false)}
+}
+$('go').onclick=async function(){var fl=files.slice();files=[];pick([]);$('file').value='';for(var i=0;i<fl.length;i++)run(fl[i])};
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(function(){});
+})();
+</script>
+</body>
+</html>

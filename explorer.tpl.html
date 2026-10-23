@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0b0d12">
+<title>__TITLE__</title>
+<style>
+:root{--bg:#0b0d12;--panel:#12151c;--line:#232836;--fg:#e6e9f0;--mut:#8b93a7;--acc:#4f8cff}
+@media (prefers-color-scheme:light){:root{--bg:#f6f7fb;--panel:#fff;--line:#dfe3ee;--fg:#161a24;--mut:#667089;--acc:#1f5fe0}}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,Vazirmatn,sans-serif;min-height:100dvh;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+header{position:sticky;top:0;z-index:5;display:flex;gap:10px;align-items:center;padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+header b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+button{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:7px 12px;cursor:pointer}
+button.on{border-color:var(--acc);color:var(--acc)}
+nav{position:fixed;inset:0 0 0 auto;width:min(86vw,340px);background:var(--panel);border-inline-start:1px solid var(--line);transform:translateX(105%);transition:transform .2s;z-index:10;overflow:auto;padding:12px;padding-top:max(12px,env(safe-area-inset-top))}
+[dir=rtl] nav{inset:0 auto 0 0;transform:translateX(-105%)}
+nav.open{transform:none}
+#scrim{position:fixed;inset:0;background:#0008;z-index:9;display:none}#scrim.open{display:block}
+nav a{display:block;padding:8px 10px;border-radius:8px;color:var(--fg);text-decoration:none;font:13px/1.4 ui-monospace,Menlo,monospace;direction:ltr;text-align:left;word-break:break-all;cursor:pointer}
+nav a small{display:block;color:var(--mut)}nav a.sel{background:color-mix(in srgb,var(--acc) 18%,transparent);color:var(--acc)}
+main{padding:14px;max-width:1100px;margin:0 auto}
+.meta{color:var(--mut);font:12px ui-monospace,Menlo,monospace;direction:ltr;text-align:left;margin-bottom:10px;word-break:break-all}
+pre{direction:ltr;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;overflow:auto;font:12.5px/1.55 ui-monospace,Menlo,monospace;white-space:pre;tab-size:2}
+.wrap pre{white-space:pre-wrap;word-break:break-word}
+img,video{max-width:100%;border-radius:10px;background:repeating-conic-gradient(#8883 0 25%,transparent 0 50%) 0 0/16px 16px}
+iframe{width:100%;height:78dvh;border:1px solid var(--line);border-radius:12px;background:#fff}
+table{border-collapse:collapse;direction:ltr;font-size:13px;display:block;overflow:auto;max-width:100%}
+td,th{border:1px solid var(--line);padding:5px 9px;white-space:nowrap}th{background:var(--panel);position:sticky;top:0}
+.btns{display:flex;gap:8px;margin:0 0 12px;flex-wrap:wrap}
+a.dl{color:var(--acc)}
+@media(min-width:900px){nav{position:fixed;transform:none!important;inset:0 auto 0 0;width:320px;padding-top:60px}[dir=rtl] nav{inset:0 0 0 auto;border-inline-start:0;border-inline-end:0;border-inline-start:1px solid var(--line)}
+ #menu{display:none}main{margin-inline-start:0;margin-inline-end:330px}header{margin-inline-end:320px}}
+</style>
+</head>
+<body>
+<header><button id="menu" aria-label="فهرست">☰ فایل‌ها</button><b id="ttl"></b><button id="wrapb">شکستن خط</button></header>
+<div id="scrim"></div><nav id="nav"></nav><main id="view"></main>
+<script id="data" type="application/json">__DATA__</script>
+<script>/*__MARKED__*/</script>
+<script>
+(function(){
+var D=JSON.parse(document.getElementById('data').textContent),F=D.files;
+var nav=document.getElementById('nav'),view=document.getElementById('view'),scrim=document.getElementById('scrim');
+document.getElementById('ttl').textContent=D.title+' — '+F.length+' فایل';
+function esc(s){return s.replace(/[&<>]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
+function sz(n){return n<1024?n+' B':n<1048576?(n/1024).toFixed(1)+' KB':(n/1048576).toFixed(1)+' MB'}
+function bytes(b64){var s=atob(b64),u=new Uint8Array(s.length);for(var i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u}
+function blobUrl(f){return URL.createObjectURL(new Blob([bytes(f.b64)],{type:f.mime}))}
+function csv(t,sep){var rows=[],r=[],c='',q=false;for(var i=0;i<t.length;i++){var ch=t[i];if(q){if(ch=='"'){if(t[i+1]=='"'){c+='"';i++}else q=false}else c+=ch}else if(ch=='"')q=true;else if(ch==sep){r.push(c);c=''}else if(ch=='\n'){r.push(c.replace(/\r$/,''));rows.push(r);r=[];c=''}else c+=ch}if(c||r.length){r.push(c);rows.push(r)}return rows}
+function srcdoc(body){return '<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><style>body{font:16px/1.7 -apple-system,Tahoma,sans-serif;padding:16px;max-width:820px;margin:auto;color:#161a24}pre,code{background:#f1f3f8;border-radius:6px}pre{padding:12px;overflow:auto}code{padding:1px 5px}img{max-width:100%}table{border-collapse:collapse}td,th{border:1px solid #ccd;padding:4px 8px}</style>'+body}
+var cur=null,wrap=false;
+function show(i){
+  cur=i;var f=F[i];location.hash='#'+encodeURIComponent(f.path);
+  [].forEach.call(nav.children,function(a,k){a.classList.toggle('sel',k===i)});
+  nav.classList.remove('open');scrim.classList.remove('open');
+  view.className=wrap?'wrap':'';view.innerHTML='';
+  var m=document.createElement('div');m.className='meta';m.textContent=f.path+'  ·  '+sz(f.size||0)+(f.truncated?'  ·  (truncated)':'');view.appendChild(m);
+  var ext=f.ext;
+  if(f.kind==='text'){
+    if(/^(md|markdown)$/.test(ext)){
+      var b=document.createElement('div');b.className='btns';var fr=document.createElement('iframe');fr.setAttribute('sandbox','');
+      var raw=document.createElement('pre');raw.style.display='none';raw.textContent=f.text;
+      var t1=document.createElement('button');t1.textContent='متن خام';t1.onclick=function(){var s=raw.style.display==='none';raw.style.display=s?'':'none';fr.style.display=s?'none':'';t1.classList.toggle('on',s)};
+      b.appendChild(t1);view.appendChild(b);fr.srcdoc=srcdoc(window.marked.parse(f.text));view.appendChild(fr);view.appendChild(raw);
+    }else if(/^(html?|svg)$/.test(ext)){
+      var b2=document.createElement('div');b2.className='btns';var fr2=document.createElement('iframe');fr2.setAttribute('sandbox','');fr2.srcdoc=f.text;fr2.style.display='none';
+      var pre=document.createElement('pre');pre.textContent=f.text;
+      var t2=document.createElement('button');t2.textContent='پیش‌نمایش (بدون اسکریپت)';t2.onclick=function(){var s=fr2.style.display==='none';fr2.style.display=s?'':'none';pre.style.display=s?'none':'';t2.classList.toggle('on',s)};
+      b2.appendChild(t2);view.appendChild(b2);view.appendChild(fr2);view.appendChild(pre);
+    }else if(/^(csv|tsv)$/.test(ext)){
+      var rows=csv(f.text,ext==='tsv'?'\t':',').slice(0,2000);var h='<table>';
+      rows.forEach(function(r,k){h+='<tr>'+r.map(function(c){return k?'<td>'+esc(c)+'</td>':'<th>'+esc(c)+'</th>'}).join('')+'</tr>'});
+      var d=document.createElement('div');d.innerHTML=h+'</table>';view.appendChild(d);
+    }else{
+      var txt=f.text;if(ext==='json'){try{txt=JSON.stringify(JSON.parse(f.text),null,2)}catch(e){}}
+      var p=document.createElement('pre');p.textContent=txt;view.appendChild(p);
+    }
+  }else if(f.kind==='image'&&f.b64){var im=document.createElement('img');im.src='data:'+f.mime+';base64,'+f.b64;view.appendChild(im)}
+  else if(f.kind==='pdf'&&f.b64){var u=blobUrl(f);var a=document.createElement('a');a.className='dl';a.href=u;a.target='_blank';a.textContent='باز کردن PDF در تب جدید';view.appendChild(a);var ifr=document.createElement('iframe');ifr.src=u;view.appendChild(ifr)}
+  else if(f.kind==='audio'&&f.b64){var au=document.createElement('audio');au.controls=true;au.src=blobUrl(f);view.appendChild(au)}
+  else if(f.kind==='video'&&f.b64){var vi=document.createElement('video');vi.controls=true;vi.playsInline=true;vi.src=blobUrl(f);view.appendChild(vi)}
+  else if(f.b64){var dl=document.createElement('a');dl.className='dl';dl.textContent='دانلود فایل';dl.href=blobUrl(f);dl.download=f.path.split('/').pop();view.appendChild(dl)}
+  else{var pp=document.createElement('p');pp.textContent='این فایل باینری یا بزرگ است و داخل صفحه جاسازی نشده.';view.appendChild(pp)}
+  window.scrollTo(0,0);
+}
+F.forEach(function(f,i){var a=document.createElement('a');a.innerHTML=esc(f.path)+'<small>'+sz(f.size||0)+'</small>';a.onclick=function(){show(i)};nav.appendChild(a)});
+document.getElementById('menu').onclick=function(){nav.classList.add('open');scrim.classList.add('open')};
+scrim.onclick=function(){nav.classList.remove('open');scrim.classList.remove('open')};
+document.getElementById('wrapb').onclick=function(){wrap=!wrap;this.classList.toggle('on',wrap);view.className=wrap?'wrap':''};
+var want=decodeURIComponent((location.hash||'').slice(1))||D.select,idx=F.findIndex(function(f){return f.path===want});
+show(idx>=0?idx:0);
+})();
+</script>
+</body>
+</html>

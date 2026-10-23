@@ -1,0 +1,13 @@
+{
+  "name": "forge-html-v2",
+  "private": true,
+  "type": "module",
+  "version": "2.2.1",
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "esbuild": "^0.25.0",
+    "fflate": "^0.8.2",
+    "marked": "^15.0.0",
+    "playwright-core": "^1.50.0"
+  }
+}

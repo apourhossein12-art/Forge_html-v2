@@ -1,0 +1,64 @@
+name: anyhtml
+
+on:
+  push:
+    paths: ['inbox/**']
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Direct download URL of a zip/file (optional)'
+        required: false
+      name:
+        description: 'Output name (optional)'
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: anyhtml
+  cancel-in-progress: false
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install converter dependencies
+        run: npm install --no-audit --no-fund
+      - name: Download URL input
+        if: ${{ github.event.inputs.url != '' }}
+        env:
+          URL: ${{ github.event.inputs.url }}
+          NAME: ${{ github.event.inputs.name }}
+        run: |
+          mkdir -p inbox
+          n="$(echo "${NAME:-url-$(date +%s)}" | tr -c 'A-Za-z0-9-\n' '-' | cut -c1-60)"
+          curl -fsSL --max-time 300 -o "inbox/${n}.zip" "$URL"
+      - name: Convert everything in inbox
+        run: |
+          shopt -s nullglob
+          mkdir -p outputs
+          for f in inbox/*; do
+            base="$(basename "$f")"
+            [ "$base" = ".gitkeep" ] && continue
+            stem="${base%.*}"
+            echo "::group::convert $base"
+            if node anyhtml.mjs "$f" "outputs/${stem}.html"; then echo ok; else echo "FAILED $base"; printf 'conversion failed, see the Actions log\n' > "outputs/${stem}.report.txt"; fi
+            echo "::endgroup::"
+          done
+      - name: Commit results
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          find inbox -type f ! -name .gitkeep -delete 2>/dev/null || true
+          git add -A outputs inbox
+          git commit -m "anyhtml: add converted output [skip ci]" || echo "nothing to commit"
+          for i in 1 2 3; do git pull --rebase origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && break || sleep 5; done
