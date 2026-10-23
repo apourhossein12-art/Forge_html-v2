@@ -1,0 +1,16 @@
+root: . | package.json: true | html files: 0 | py: - | php: false
+── strategy: build
+$ npm install --no-audit --no-fund --legacy-peer-deps
+$ npm run build
+build attempt failed: build finished but no output folder with index.html found
+strategy build failed: build finished but no output folder with index.html found
+── strategy: serve
+$ npm ci --no-audit --no-fund --legacy-peer-deps
+$ npm run build
+serve: starting npm start
+serve: up at http://127.0.0.1:4439/
+$ npx playwright-core install --with-deps chromium
+serve: snapshot of 1 page(s) (scripts removed; forms/backend calls are static)
+verify: OK
+  self-contained: no external requests
+DONE via "serve" → /home/runner/work/Forge_html-v2/Forge_html-v2/outputs/mvldvzcc-optiflow-mobile-oct-23-2026-4-43-20-pm.html (1.45 MB)
