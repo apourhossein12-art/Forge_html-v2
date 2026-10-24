@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0d12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Forge">
+<title>Forge Builder v3</title>
+<style>
+:root{--bg:#0b0d12;--sf:#121722;--ln:#222b3d;--tx:#e6eaf2;--mu:#8792a8;--ac:#8ea2ff;--er:#ff7b86;--wr:#f0c15a}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.7 Vazirmatn,Tahoma,system-ui,sans-serif;padding:max(14px,env(safe-area-inset-top)) 14px max(14px,env(safe-area-inset-bottom))}
+main{max-width:980px;margin:0 auto;display:grid;gap:12px}
+h1{font-size:22px;margin:4px 0 0}
+p{margin:0;color:var(--mu)}
+.card{background:var(--sf);border:1px solid var(--ln);border-radius:12px;padding:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+button,select{font:inherit;color:var(--tx);background:#1a2132;border:1px solid var(--ln);border-radius:8px;padding:7px 12px;min-height:40px}
+button.p{background:var(--ac);color:#0b0d12;border-color:var(--ac);font-weight:700}
+button:focus-visible,select:focus-visible,textarea:focus-visible,#drop:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+#drop{border:1.5px dashed var(--ln);text-align:center;padding:22px 12px;cursor:pointer}
+#drop.on{border-color:var(--ac);background:#161d30}
+textarea{width:100%;height:220px;direction:ltr;background:#0d111a;color:var(--tx);border:1px solid var(--ln);border-radius:8px;padding:10px;font:13px/1.5 ui-monospace,Menlo,monospace;resize:vertical}
+iframe{width:100%;height:58vh;min-height:320px;border:1px solid var(--ln);border-radius:8px;background:#fff}
+#con{height:58vh;min-height:320px;overflow:auto;direction:ltr;text-align:left;background:#0d111a;border:1px solid var(--ln);border-radius:8px;padding:8px;font:12.5px/1.5 ui-monospace,Menlo,monospace;white-space:pre-wrap}
+.error{color:var(--er)}.warn{color:var(--wr)}.info{color:var(--ac)}
+#st{color:var(--mu)}
+.b{padding:2px 10px;border:1px solid var(--ln);border-radius:99px;font-size:13px;color:var(--ac)}
+.hide{display:none}
+</style>
+</head>
+<body>
+<main>
+  <div>
+    <h1>Forge Builder</h1>
+    <p>پروژه Node، Vite + React یا Python بدهید؛ داخل مرورگر ساخته و اجرا می‌شود.</p>
+  </div>
+  <section class="card" id="drop" tabindex="0"><b>انتخاب ZIP یا فایل‌ها</b> یا رها کردن اینجا<p>node_modules و dist نادیده گرفته می‌شوند</p></section>
+  <input id="in" type="file" multiple hidden>
+  <div class="row"><span>نمونه:</span><button data-s="react">React</button><button data-s="flask">Flask</button><button data-s="node">Node</button></div>
+  <section class="card">
+    <div class="row"><select id="sel" aria-label="فایل"></select><button id="add">فایل جدید</button><button id="del">حذف</button><span class="b" id="kd">—</span></div>
+    <textarea id="ed" spellcheck="false" aria-label="ویرایشگر"></textarea>
+  </section>
+  <section class="card">
+    <div class="row"><button class="p" id="run">ساخت و اجرا</button><button data-t="v">پیش‌نمایش</button><button data-t="c">کنسول</button><button id="dl">دانلود HTML</button><button id="op">باز کردن در تب</button><span id="st"></span></div>
+    <iframe id="fr" sandbox="allow-scripts allow-modals allow-forms allow-popups" title="پیش‌نمایش"></iframe>
+    <div id="con" class="hide" role="log"></div>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/esbuild-wasm@0.19.12/lib/browser.min.js"></script>
+<script>
+const $=s=>document.querySelector(s),F=new Map();
+let kind='?',last='',cu='/',py=null,out='',imgs=[],ES=null;
+const TXT=/\.(jsx?|tsx?|mjs|cjs|json|css|html?|md|py|txt|toml|yml|yaml|csv|env|svg)$/i;
+const AST=/\.(png|jpe?g|gif|webp|svg|ico|woff2?|mp3)$/i;
+const MIME={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp',ico:'image/x-icon',woff:'font/woff',woff2:'font/woff2',mp3:'audio/mpeg'};
+const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const dir=p=>p.includes('/')?p.slice(0,p.lastIndexOf('/')):'';
+const norm=p=>{const o=[];for(const s of p.split('/')){if(s==='..')o.pop();else if(s&&s!=='.')o.push(s)}return o.join('/')};
+const log=(m,l='log')=>{const d=document.createElement('div');d.className=l;d.textContent=m;$('#con').append(d);$('#con').scrollTop=1e9};
+const st=m=>{$('#st').textContent=m};
+const tab=t=>{$('#fr').classList.toggle('hide',t!=='v');$('#con').classList.toggle('hide',t!=='c')};
+const load=u=>new Promise((r,j)=>{const s=document.createElement('script');s.src=u;s.onload=r;s.onerror=()=>j(Error('بارگذاری نشد: '+u));document.head.append(s)});
+const put=h=>{last=h;$('#fr').srcdoc=h};
+const inj=(h,x,end)=>end?(h.includes('</body>')?h.replace('</body>',()=>x+'</body>'):h+x):(h.includes('</head>')?h.replace('</head>',()=>x+'</head>'):x+h);
+
+/* ---------- فایل‌ها ---------- */
+const rd=(b,n)=>TXT.test(n)?b.text():new Promise(r=>{const f=new FileReader();f.onload=()=>r(f.result);f.readAsDataURL(new Blob([b],{type:MIME[n.split('.').pop().toLowerCase()]||'application/octet-stream'}))});
+async function add(list){
+  for(const f of list){
+    if(/\.zip$/i.test(f.name)){
+      const z=await JSZip.loadAsync(f);
+      const ns=Object.keys(z.files).filter(n=>!z.files[n].dir&&!n.startsWith('__MACOSX')&&!/(^|\/)(node_modules|\.git|dist|__pycache__|\.DS_Store)(\/|$)/.test(n));
+      const r0=ns[0]&&ns[0].includes('/')?ns[0].split('/')[0]+'/':'',root=ns.length&&ns.every(n=>n.startsWith(r0))?r0:'';
+      for(const n of ns)F.set(n.slice(root.length),await rd(await z.files[n].async('blob'),n));
+    }else F.set(f.webkitRelativePath||f.name,await rd(f,f.name));
+  }
+  pick();
+}
+function detect(){
+  let p={};try{p=JSON.parse(F.get('package.json')||'{}')}catch{}
+  const h=F.get('index.html')||'';
+  if(/type=["']module["']/.test(h))return'web';
+  if([...F.keys()].some(k=>k.endsWith('.py')))return'python';
+  if(p.main||['index.js','server.js','main.js'].some(k=>F.has(k)))return'node';
+  return h?'web':'?';
+}
+const isBin=(k,v)=>v!=null&&AST.test(k)&&v.startsWith('data:');
+function pick(keep){
+  const s=$('#sel');s.innerHTML=[...F.keys()].sort().map(k=>'<option>'+esc(k)+'</option>').join('');
+  if(keep&&F.has(keep))s.value=keep;
+  show();kind=detect();
+  $('#kd').textContent={web:'Vite / وب',node:'Node',python:'Python','?':'نامشخص'}[kind];
+}
+function show(){const k=$('#sel').value,v=F.get(k);$('#ed').disabled=v==null||isBin(k,v);$('#ed').value=v==null?'':isBin(k,v)?'(فایل باینری)':v}
+$('#sel').onchange=show;
+$('#ed').oninput=()=>{const k=$('#sel').value;if(k&&!$('#ed').disabled){F.set(k,$('#ed').value);kind=detect();$('#kd').textContent={web:'Vite / وب',node:'Node',python:'Python','?':'نامشخص'}[kind]}};
+$('#add').onclick=()=>{const n=prompt('نام فایل (مثلاً src/App.jsx)');if(n){F.set(norm(n),'');pick(norm(n))}};
+$('#del').onclick=()=>{F.delete($('#sel').value);pick()};
+const dz=$('#drop');
+dz.onclick=()=>$('#in').click();
+dz.onkeydown=e=>{if(e.key==='Enter'||e.key===' ')$('#in').click()};
+dz.ondragover=e=>{e.preventDefault();dz.classList.add('on')};
+dz.ondragleave=()=>dz.classList.remove('on');
+dz.ondrop=e=>{e.preventDefault();dz.classList.remove('on');add(e.dataTransfer.files)};
+$('#in').onchange=e=>add(e.target.files);
+document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>tab(b.dataset.t));
+
+/* ---------- باندل با esbuild-wasm ---------- */
+const BAD="const e=()=>{throw new Error('این ماژول به سرور واقعی نیاز دارد')};export const createServer=e,request=e,get=e,exec=e,spawn=e;export default{createServer,request,get,exec,spawn}";
+const SHIMS={
+  path:"const j=(...a)=>a.join('/').split('/').filter(Boolean).join('/');export const join=j,resolve=j,sep='/',basename=(p,e)=>{const b=p.split('/').pop();return e&&b.endsWith(e)?b.slice(0,-e.length):b},dirname=p=>p.split('/').slice(0,-1).join('/')||'/',extname=p=>{const m=p.split('/').pop().match(/\\.[^.]*$/);return m?m[0]:''};export default{join,resolve,sep,basename,dirname,extname}",
+  fs:"const F=()=>window.__FS,n=p=>String(p).split('/').filter(x=>x&&x!=='.').join('/');export const readFileSync=p=>{if(!(n(p) in F()))throw new Error('ENOENT: '+p);return F()[n(p)]},writeFileSync=(p,d)=>{F()[n(p)]=String(d)},existsSync=p=>n(p) in F(),readdirSync=()=>Object.keys(F());export default{readFileSync,writeFileSync,existsSync,readdirSync}",
+  os:"export const EOL='\\n',platform=()=>'browser',cpus=()=>[];export default{EOL,platform,cpus}",
+  http:BAD,https:BAD,net:BAD,child_process:BAD
+};
+const EXT=['','.js','.jsx','.ts','.tsx','.json','.css','/index.js','/index.jsx','/index.ts','/index.tsx'];
+const plug=(ext,node)=>({name:'vfs',setup(b){
+  b.onResolve({filter:/.*/},a=>{
+    const p=a.path,bi=p.replace(/^node:/,'');
+    if(a.kind==='url-token'||/^(https?:|data:)/.test(p))return{path:p,external:true};
+    if(node&&Object.hasOwn(SHIMS,bi))return{path:bi,namespace:'shim'};
+    if(a.kind==='entry-point'||/^[./]/.test(p)){
+      const base=a.kind==='entry-point'?norm(p):p[0]==='/'?norm(p):norm(dir(a.importer)+'/'+p);
+      const hit=EXT.map(e=>base+e).find(k=>F.has(k));
+      return hit?{path:hit,namespace:'vfs'}:{errors:[{text:'فایل پیدا نشد: '+p+' (از '+a.importer+')'}]};
+    }
+    ext.add(p);return{path:p,external:true};
+  });
+  b.onLoad({filter:/.*/,namespace:'shim'},a=>({contents:SHIMS[a.path],loader:'js'}));
+  b.onLoad({filter:/.*/,namespace:'vfs'},a=>{
+    const t=F.get(a.path);
+    if(AST.test(a.path))return{contents:'export default '+JSON.stringify(t.startsWith('data:')?t:'data:image/svg+xml;utf8,'+encodeURIComponent(t)),loader:'js'};
+    return{contents:t,loader:{js:'jsx',mjs:'js',cjs:'js',jsx:'jsx',ts:'ts',tsx:'tsx',json:'json',css:'css'}[a.path.split('.').pop()]||'text'};
+  });
+}});
+async function E(){if(!ES){await esbuild.initialize({wasmURL:'https://cdn.jsdelivr.net/npm/esbuild-wasm@0.19.12/esbuild.wasm'});ES=esbuild}return ES}
+const deps=()=>{try{const p=JSON.parse(F.get('package.json')||'{}');return{...p.devDependencies,...p.dependencies}}catch{return{}}};
+function imap(ext){
+  const d=deps(),m={},v=n=>d[n]?'@'+String(d[n]).replace(/^[^\d]*/,''):'',pe=['react','react-dom'].filter(n=>d[n]).join(',');
+  for(const s of ext){
+    const[,n,sub='']=s.match(/^(@[^/]+\/[^/]+|[^/]+)(\/.*)?$/);
+    const q=n==='react'?'':n==='react-dom'?'?external=react':pe?'?external='+pe:'';
+    m[s]='https://esm.sh/'+n+v(n)+sub+q;
+  }
+  return m;
+}
+async function bundle(entry,node){
+  const e=await E(),ext=new Set();
+  const r=await e.build({entryPoints:[entry],bundle:true,write:false,format:'esm',outdir:'out',jsx:'automatic',target:'es2020',logLevel:'silent',
+    define:{'process.env.NODE_ENV':'"development"','import.meta.env.MODE':'"development"','import.meta.env.DEV':'true','import.meta.env.PROD':'false','import.meta.env.BASE_URL':'"/"','import.meta.env':'{}'},
+    plugins:[plug(ext,node)]});
+  let js='',css='';
+  for(const o of r.outputFiles){if(o.path.endsWith('.css'))css+=o.text;else js+=o.text}
+  return{js,css,map:imap(ext)};
+}
+
+/* ---------- پل کنسول و ناوبری ---------- */
+const BR="<script>(()=>{const s=(l,a)=>parent.postMessage({t:'log',l,m:a.map(x=>{try{return typeof x==='string'?x:JSON.stringify(x)}catch{return String(x)}}).join(' ')},'*');['log','info','warn','error'].forEach(k=>{const o=console[k];console[k]=(...a)=>{s(k,a);o.apply(console,a)}});addEventListener('error',e=>s('error',[e.message]));addEventListener('unhandledrejection',e=>s('error',[String(e.reason)]))})()<\/script>";
+const NAV="<script>addEventListener('click',e=>{const a=e.target.closest('a[href]');if(!a)return;const h=a.getAttribute('href');if(/^(https?:|#|mailto:|javascript:)/.test(h))return;e.preventDefault();parent.postMessage({t:'nav',m:'GET',u:h},'*')});addEventListener('submit',e=>{e.preventDefault();const f=e.target;parent.postMessage({t:'nav',m:(f.method||'get').toUpperCase(),u:f.getAttribute('action')||'',d:Object.fromEntries(new FormData(f))},'*')})<\/script>";
+addEventListener('message',e=>{
+  if(e.source!==$('#fr').contentWindow)return;
+  const d=e.data||{};
+  if(d.t==='log')log(d.m,d.l);
+  else if(d.t==='nav'&&kind==='python')go(d.m,d.u,d.d).catch(x=>log(String(x),'error'));
+});
+
+/* ---------- موتور وب (Vite / React / HTML) ---------- */
+async function runWeb(){
+  let h=F.get('index.html')||'<!doctype html><html><body><div id="root"></div></body></html>';
+  const m=h.match(/<script[^>]*type=["']module["'][^>]*src=["']([^"']+)["'][^>]*>\s*<\/script>/i);
+  let head=BR,tail='';
+  if(m){
+    h=h.replace(m[0],()=>'');
+    const r=await bundle(norm(m[1]),false);
+    head+=(r.css?'<style>'+r.css+'</style>':'')+'<script type="importmap">'+JSON.stringify({imports:r.map})+'<\/script>';
+    tail='<script type="module">'+r.js.replace(/<\/script/gi,'<\\/script')+'<\/script>';
+  }
+  h=h.replace(/<link[^>]*href=["']([^"']+\.css)["'][^>]*>/gi,(x,u)=>F.has(norm(u))?'<style>'+F.get(norm(u))+'</style>':x)
+     .replace(/<script([^>]*)src=["']([^"']+)["']([^>]*)>\s*<\/script>/gi,(x,a,u,c)=>/^(https?:)?\/\//.test(u)||!F.has(norm(u))?x:'<script'+a+c+'>'+F.get(norm(u))+'<\/script>');
+  put(inj(inj(h,head),tail,1));
+}
+
+/* ---------- موتور Node ---------- */
+async function runNode(){
+  let pk={};try{pk=JSON.parse(F.get('package.json')||'{}')}catch{}
+  const en=[pk.main,'index.js','server.js','main.js','app.js','index.mjs'].filter(Boolean).map(norm).find(k=>F.has(k));
+  if(!en)throw Error('فایل ورودی پیدا نشد (package.json ← main)');
+  const r=await bundle(en,true),fs={};
+  for(const[k,v]of F)if(!isBin(k,v))fs[k]=v;
+  const proc="window.__FS="+JSON.stringify(fs).replace(/</g,'\\u003c')+";window.process={env:{NODE_ENV:'development'},argv:['node','"+en+"'],cwd:()=>'/',platform:'browser',exit(){},on(){},nextTick:f=>queueMicrotask(f),stdout:{write:s=>console.log(String(s).trimEnd())},stderr:{write:s=>console.error(String(s).trimEnd())}};window.global=window;";
+  put(BR+'<script>'+proc+'<\/script><script type="importmap">'+JSON.stringify({imports:r.map})+'<\/script><script type="module">'+r.js.replace(/<\/script/gi,'<\\/script')+'<\/script>');
+  tab('c');
+}
+
+/* ---------- موتور Python (Pyodide) + سرور مجازی Flask ---------- */
+const MPL="try:\n    import matplotlib;matplotlib.use('agg')\n    import matplotlib.pyplot as plt,io,base64,js\n    def _show(*a,**k):\n        for n in plt.get_fignums():\n            b=io.BytesIO();plt.figure(n).savefig(b,format='png');js.__img(base64.b64encode(b.getvalue()).decode())\n        plt.close('all')\n    plt.show=_show\nexcept Exception:\n    pass\n";
+async function runPy(){
+  if(!py){
+    log('بارگذاری Pyodide (بار اول چند ثانیه طول می‌کشد)…','info');
+    await load('https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js');
+    py=await loadPyodide({stdout:m=>{out+=m+'\n';log(m)},stderr:m=>{out+=m+'\n';log(m,'error')}});
+  }
+  out='';imgs=[];window.__img=b=>imgs.push(b);
+  try{py.FS.mkdirTree('/p')}catch{}
+  let all='';
+  for(const[k,v]of F){
+    if(isBin(k,v))continue;
+    const d=dir(k);if(d)py.FS.mkdirTree('/p/'+d);
+    py.FS.writeFile('/p/'+k,v);
+    if(k.endsWith('.py'))all+=v+'\n';
+  }
+  const en=['main.py','app.py','run.py','server.py'].find(k=>F.has(k))||[...F.keys()].find(k=>k.endsWith('.py'));
+  if(!en)throw Error('فایل .py پیدا نشد');
+  const fl=/^\s*(from|import)\s+flask/im.test(all);
+  const rq=(F.get('requirements.txt')||'').split('\n').map(s=>s.trim()).filter(s=>s&&!s.startsWith('#'));
+  if(fl&&!rq.some(r=>/^flask/i.test(r)))rq.push('flask');
+  await py.loadPackagesFromImports(all);
+  if(rq.length){await py.loadPackage('micropip');log('نصب پکیج‌ها: '+rq.join(', '),'info');await py.pyimport('micropip').install(py.toPy(rq))}
+  py.globals.set('ENTRY',en);
+  const pre="import os,sys,runpy,json\nos.chdir('/p')\nsys.path.insert(0,'/p')\n";
+  if(fl){
+    await py.runPythonAsync(pre+"ns=runpy.run_path(ENTRY,run_name='forge')\napp=next((v for v in ns.values() if v.__class__.__name__=='Flask'),None)\nif app is None: raise RuntimeError('نمونه Flask پیدا نشد')\ndef forge(m,u,d):\n    r=app.test_client().open(u,method=m,data=d,follow_redirects=True)\n    return json.dumps([r.status_code,r.get_data(as_text=True)])\n");
+    cu='/';await go('GET','/');
+  }else{
+    await py.runPythonAsync(pre+MPL+"runpy.run_path(ENTRY,run_name='__main__')\n");
+    put(BR+'<body style="margin:0;background:#0d111a;color:#e6eaf2;font:14px/1.6 ui-monospace,monospace;padding:12px"><pre style="white-space:pre-wrap;margin:0">'+esc(out||'(بدون خروجی)')+'</pre>'+imgs.map(b=>'<img style="max-width:100%;background:#fff;margin-top:10px" src="data:image/png;base64,'+b+'">').join(''));
+  }
+}
+async function go(m,u,d){
+  if(!u)u=cu;
+  if(m==='GET'&&d){u+=(u.includes('?')?'&':'?')+new URLSearchParams(d);d=null}
+  if(!u.startsWith('/'))u=cu.replace(/[^/]*$/,'')+u;
+  cu=u;
+  const[s,h]=JSON.parse(py.globals.get('forge')(m,u,d?py.toPy(d):null));
+  log(m+' '+u+'  '+s,s>=400?'error':'info');
+  put(inj(inj(h,BR),NAV,1));
+}
+
+/* ---------- اجرا و خروجی ---------- */
+async function run(){
+  $('#con').innerHTML='';tab('v');st('در حال ساخت…');kind=detect();
+  try{
+    const fn={web:runWeb,node:runNode,python:runPy}[kind];
+    if(!fn)throw Error('نوع پروژه شناخته نشد؛ index.html، package.json یا فایل .py لازم است');
+    await fn();st('اجرا شد');
+  }catch(e){
+    log(e.errors?e.errors.map(x=>x.text).join('\n'):(e.message||String(e)),'error');
+    tab('c');st('خطا');
+  }
+}
+$('#run').onclick=run;
+$('#dl').onclick=()=>{if(!last)return st('ابتدا اجرا کنید');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([last],{type:'text/html'}));a.download='app.html';a.click()};
+$('#op').onclick=()=>{if(!last)return st('ابتدا اجرا کنید');open(URL.createObjectURL(new Blob([last],{type:'text/html'})))};
+
+/* ---------- نمونه‌ها ---------- */
+const SAMPLES={
+  react:{
+    'package.json':'{"dependencies":{"react":"18.3.1","react-dom":"18.3.1"}}',
+    'index.html':'<!doctype html><html><body><div id="root"></div><script type="module" src="/src/main.jsx"><\/script></body></html>',
+    'src/main.jsx':"import {createRoot} from 'react-dom/client';\nimport App from './App';\nimport './s.css';\ncreateRoot(document.getElementById('root')).render(<App/>);",
+    'src/App.jsx':"import {useState} from 'react';\nexport default function App(){\n  const [n,setN]=useState(0);\n  return <button onClick={()=>{setN(n+1);console.log('کلیک',n+1)}}>شمارنده: {n}</button>;\n}",
+    'src/s.css':'body{font:20px system-ui;padding:2rem;direction:rtl}'
+  },
+  flask:{
+    'app.py':"from flask import Flask, request\napp = Flask(__name__)\n\n@app.route('/', methods=['GET','POST'])\ndef home():\n    n = request.form.get('n', '')\n    return f'<h2>سلام {n}</h2><form method=\"post\"><input name=\"n\"><button>ارسال</button></form>'\n"
+  },
+  node:{
+    'package.json':'{"main":"index.js"}',
+    'index.js':"import path from 'path';\nimport fs from 'fs';\nfs.writeFileSync('a.txt','سلام');\nconsole.log(path.join('src','app.js'),fs.readFileSync('a.txt'));\nconsole.log(process.argv.length);"
+  }
+};
+document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{F.clear();for(const[k,v]of Object.entries(SAMPLES[b.dataset.s]))F.set(k,v);pick();run()});
+</script>
+</body>
+</html>
