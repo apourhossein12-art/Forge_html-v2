@@ -1,0 +1,7 @@
+root: . | package.json: false | html files: 1 | py: - | php: false
+── strategy: static
+static: 1 page(s) inlined
+$ npx playwright-core install --with-deps chromium
+verify: OK
+  self-contained: no external requests
+DONE via "static" → /home/runner/work/Forge_html-v2/Forge_html-v2/outputs/mvmvk8j0-indexcld.html (0.16 MB)
